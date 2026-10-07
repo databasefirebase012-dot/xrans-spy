@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050507">
+<title>NEBULA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<canvas id="bg3d"></canvas>
+<div class="grain"></div>
+
+<div id="loadingView" class="loader">
+  <div class="loader-inner">
+    <div class="brand-mark"></div>
+    <div class="loader-label">INITIALIZING</div>
+  </div>
+</div>
+
+<div id="panelView" class="hidden">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark small"></div>
+      <h1>NEBULA</h1>
+    </div>
+    <button id="logoutBtn" class="btn ghost">SIGN OUT</button>
+  </header>
+
+  <main class="layout">
+    <section class="card" data-tilt>
+      <div class="card-head">
+        <span class="kicker">DEVICES</span>
+        <span id="devCount" class="badge">0</span>
+      </div>
+      <div class="select-wrap">
+        <select id="deviceSelect" class="select">
+          <option value="">SELECT DEVICE</option>
+        </select>
+      </div>
+    </section>
+
+    <div id="emptyState" class="empty">
+      <div class="empty-glyph"></div>
+      <div class="empty-title">NO DEVICE SELECTED</div>
+      <div class="empty-sub">Choose a device to begin</div>
+    </div>
+
+    <div id="detailView" class="hidden">
+      <section class="card" data-tilt>
+        <div class="card-head">
+          <span class="kicker">CONTROL</span>
+        </div>
+
+        <div class="group">
+          <div class="group-label">NETWORK</div>
+          <div class="cmd-grid">
+            <button class="cmd-btn" data-action="ping">
+              <span class="cmd-icon" data-icon="ping"></span>
+              <span class="label">PING</span>
+            </button>
+            <button class="cmd-btn" data-action="sms">
+              <span class="cmd-icon" data-icon="sms"></span>
+              <span class="label">SMS</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-label">HARDWARE</div>
+          <div class="cmd-grid">
+            <button class="cmd-btn" data-action="flash_on">
+              <span class="cmd-icon" data-icon="flash"></span>
+              <span class="label">FLASH ON</span>
+            </button>
+            <button class="cmd-btn" data-action="flash_off">
+              <span class="cmd-icon" data-icon="flash-off"></span>
+              <span class="label">FLASH OFF</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-label">AUDIO</div>
+          <div class="cmd-grid">
+            <button class="cmd-btn" data-action="volume_max">
+              <span class="cmd-icon" data-icon="vol-max"></span>
+              <span class="label">MAX</span>
+            </button>
+            <button class="cmd-btn" data-action="volume_mute">
+              <span class="cmd-icon" data-icon="vol-mute"></span>
+              <span class="label">MUTE</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-tilt>
+        <div class="card-head">
+          <span class="kicker">ACTIVITY</span>
+          <span id="logCount" class="badge">0</span>
+        </div>
+        <div id="logList">
+          <div class="muted">AWAITING DATA</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <button id="refreshBtn" class="btn">REFRESH</button>
+    <button id="autoBtn" class="btn">AUTO OFF</button>
+  </nav>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let selectedDevice = null;
+let logTimer = null;
+let autoTimer = null;
+let autoOn = false;
+
+/* ---------- 3D BACKGROUND ---------- */
+(function init3D() {
+  const canvas = $('bg3d');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.z = 6;
+
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const geo = new THREE.IcosahedronGeometry(2.4, 1);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xef4444,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.28
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  group.add(mesh);
+
+  const geo2 = new THREE.IcosahedronGeometry(3.1, 0);
+  const mat2 = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.05
+  });
+  const mesh2 = new THREE.Mesh(geo2, mat2);
+  group.add(mesh2);
+
+  const starGeo = new THREE.BufferGeometry();
+  const count = 900;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count * 3; i++) {
+    positions[i] = (Math.random() - 0.5) * 40;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const starMat = new THREE.PointsMaterial({
+    color: 0xef4444,
+    size: 0.03,
+    transparent: true,
+    opacity: 0.6
+  });
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+
+  let mx = 0, my = 0;
+  document.addEventListener('mousemove', e => {
+    mx = (e.clientX / window.innerWidth - 0.5) * 2;
+    my = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  const clock = new THREE.Clock();
+  function loop() {
+    const t = clock.getElapsedTime();
+    mesh.rotation.x = t * 0.15;
+    mesh.rotation.y = t * 0.22;
+    mesh2.rotation.x = -t * 0.08;
+    mesh2.rotation.y = t * 0.12;
+    stars.rotation.y = t * 0.02;
+    group.position.x += (mx * 0.4 - group.position.x) * 0.05;
+    group.position.y += (-my * 0.4 - group.position.y) * 0.05;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+/* ---------- ICONS (inline SVG) ---------- */
+const ICONS = {
+  ping: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>',
+  sms: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  flash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>',
+  'flash-off': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z" opacity=".35"/><path d="M3 3l18 18"/></svg>',
+  'vol-max': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>',
+  'vol-mute': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>'
+};
+document.querySelectorAll('.cmd-icon').forEach(el => {
+  const n = el.getAttribute('data-icon');
+  if (ICONS[n]) el.innerHTML = ICONS[n];
+});
+
+/* ---------- AUTH ---------- */
+async function checkAuth() {
+  try {
+    const r = await fetch('/x/devices');
+    if (r.ok) {
+      $('loadingView').classList.add('hidden');
+      $('panelView').classList.remove('hidden');
+      loadDevices();
+    } else {
+      location.href = '/login';
+    }
+  } catch {
+    location.href = '/login';
+  }
+}
+
+$('logoutBtn').onclick = async () => {
+  await fetch('/x/logout', { method: 'POST' });
+  location.href = '/login';
+};
+
+/* ---------- DEVICES ---------- */
+async function loadDevices() {
+  try {
+    const r = await fetch('/x/devices');
+    if (r.status === 401) { location.href = '/login'; return; }
+    const d = await r.json();
+    renderDevices(d.devices || []);
+  } catch {}
+}
+
+function renderDevices(devices) {
+  const sel = $('deviceSelect');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">SELECT DEVICE</option>';
+  $('devCount').textContent = devices.length;
+  devices.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.deviceId;
+    opt.textContent = `${(d.model || 'UNKNOWN').toUpperCase()} // ${d.deviceId} // ${d.online ? 'ONLINE' : 'OFFLINE'}`;
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
+}
+
+$('deviceSelect').onchange = () => {
+  const id = $('deviceSelect').value;
+  if (!id) {
+    selectedDevice = null;
+    $('emptyState').classList.remove('hidden');
+    $('detailView').classList.add('hidden');
+    return;
+  }
+  selectDevice(id);
+};
+
+function selectDevice(id) {
+  selectedDevice = id;
+  $('emptyState').classList.add('hidden');
+  $('detailView').classList.remove('hidden');
+  loadLogs();
+  if (logTimer) clearInterval(logTimer);
+  logTimer = setInterval(loadLogs, 5000);
+}
+
+/* ---------- COMMANDS ---------- */
+document.querySelectorAll('.cmd-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (!selectedDevice) { toast('SELECT DEVICE FIRST'); return; }
+    const action = btn.getAttribute('data-action');
+    await sendCommand(action, btn);
+  });
+});
+
+async function sendCommand(action, btn) {
+  const labelEl = btn.querySelector('.label');
+  const original = labelEl.textContent;
+  btn.disabled = true;
+  labelEl.textContent = 'SENDING';
+  btn.classList.add('loading');
+
+  try {
+    const r = await fetch('/x/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId: selectedDevice, action, args: {} }),
+    });
+    if (r.ok) {
+      toast(action.replace(/_/g, ' ').toUpperCase() + ' SENT');
+      setTimeout(loadLogs, 1500);
+    } else {
+      toast('FAILED: ' + action.toUpperCase());
+    }
+  } catch {
+    toast('NETWORK ERROR');
+  }
+
+  btn.disabled = false;
+  labelEl.textContent = original;
+  btn.classList.remove('loading');
+}
+
+/* ---------- LOGS ---------- */
+async function loadLogs() {
+  if (!selectedDevice) return;
+  try {
+    const r = await fetch('/x/logs?deviceId=' + selectedDevice);
+    if (!r.ok) return;
+    const d = await r.json();
+    renderLogs(d.logs || []);
+  } catch {}
+}
+
+function renderLogs(logs) {
+  const list = $('logList');
+  $('logCount').textContent = logs.length;
+  if (!logs.length) {
+    list.innerHTML = '<div class="muted">AWAITING DATA</div>';
+    return;
+  }
+  list.innerHTML = logs.map(l => {
+    const isSms = (l.output || '').startsWith('SMS Terakhir');
+    const bodyHTML = isSms && l.success ? renderSmsTable(l.output) : esc(l.output || '');
+    return `
+      <div class="log-item">
+        <div class="log-head">
+          <span class="cmd-name">${esc((l.action || (l.commandId || '').slice(0, 8)).toUpperCase())}</span>
+          <span class="time">${new Date(l.at).toLocaleString('id-ID')}</span>
+        </div>
+        <div class="log-body ${l.success ? '' : 'err'}">${bodyHTML}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSmsTable(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const rows = [];
+  let currentAddr = '', currentTime = '', currentBody = '', currentOtp = '';
+  let startIdx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === '') { startIdx = i + 1; break; }
+  }
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i];
+    const headerMatch = line.match(/^(.+?)\s+—\s+(\d{2}\/\d{2}\s+\d{2}:\d{2})$/);
+    if (headerMatch) {
+      if (currentAddr) rows.push({ addr: currentAddr, time: currentTime, body: currentBody.trim(), otp: currentOtp });
+      currentAddr = headerMatch[1].trim();
+      currentTime = headerMatch[2].trim();
+      currentBody = ''; currentOtp = '';
+      continue;
+    }
+    const otpMatch = line.match(/^OTP:\s*(\d+)$/);
+    if (otpMatch) { currentOtp = otpMatch[1]; continue; }
+    if (currentAddr && line.trim() !== '') currentBody += line + '\n';
+  }
+  if (currentAddr) rows.push({ addr: currentAddr, time: currentTime, body: currentBody.trim(), otp: currentOtp });
+  if (rows.length === 0) return '<pre style="margin:0">' + esc(text) + '</pre>';
+
+  let html = '<table class="sms-table"><thead><tr><th>SENDER</th><th>TIME</th><th>MESSAGE</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>';
+    html += '<td class="addr">' + esc(r.addr.toUpperCase()) + '</td>';
+    html += '<td class="time-col">' + esc(r.time) + '</td>';
+    html += '<td class="body-col">' + esc(r.body);
+    if (r.otp) html += '<br><span class="otp-badge">OTP ' + esc(r.otp) + '</span>';
+    html += '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+/* ---------- TOAST ---------- */
+function toast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 300);
+  }, 2200);
+}
+
+/* ---------- BUTTONS ---------- */
+$('refreshBtn').onclick = () => {
+  loadDevices();
+  if (selectedDevice) loadLogs();
+  toast('REFRESHED');
+};
+
+$('autoBtn').onclick = () => {
+  autoOn = !autoOn;
+  $('autoBtn').textContent = autoOn ? 'AUTO ON' : 'AUTO OFF';
+  $('autoBtn').classList.toggle('active', autoOn);
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  if (autoOn && selectedDevice) {
+    autoTimer = setInterval(loadLogs, 3000);
+    toast('AUTO-REFRESH ENABLED');
+  } else {
+    toast('AUTO-REFRESH DISABLED');
+  }
+};
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+/* ---------- TILT CARDS ---------- */
+document.querySelectorAll('[data-tilt]').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    card.style.transform = `perspective(1000px) rotateX(${-y * 3}deg) rotateY(${x * 3}deg) translateZ(0)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+  });
+});
+
+checkAuth();
+setInterval(() => {
+  if (!$('panelView').classList.contains('hidden')) loadDevices();
+}, 8000);
+</script>
+</body>
+</html>

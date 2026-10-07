@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050507">
+<title>NEBULA // ACCESS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<canvas id="bg3d"></canvas>
+<div class="grain"></div>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-mark"></div>
+      <h1>NEBULA</h1>
+      <div class="sub">SECURE ACCESS</div>
+    </div>
+
+    <div class="field">
+      <label>USERNAME</label>
+      <input id="username" class="input" type="text" autocomplete="username" autofocus autocapitalize="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input id="password" class="input" type="password" autocomplete="current-password">
+    </div>
+    <button id="loginBtn" class="btn btn-primary">SIGN IN</button>
+    <div id="loginErr" class="err hidden"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+/* ---------- 3D BACKGROUND ---------- */
+(function init3D() {
+  const canvas = $('bg3d');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.z = 6;
+
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const mesh = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(2.4, 1),
+    new THREE.MeshBasicMaterial({ color: 0xef4444, wireframe: true, transparent: true, opacity: 0.28 })
+  );
+  group.add(mesh);
+
+  const mesh2 = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(3.1, 0),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.05 })
+  );
+  group.add(mesh2);
+
+  const starGeo = new THREE.BufferGeometry();
+  const count = 900;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 40;
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xef4444, size: 0.03, transparent: true, opacity: 0.6
+  }));
+  scene.add(stars);
+
+  let mx = 0, my = 0;
+  document.addEventListener('mousemove', e => {
+    mx = (e.clientX / window.innerWidth - 0.5) * 2;
+    my = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  const clock = new THREE.Clock();
+  function loop() {
+    const t = clock.getElapsedTime();
+    mesh.rotation.x = t * 0.15;
+    mesh.rotation.y = t * 0.22;
+    mesh2.rotation.x = -t * 0.08;
+    mesh2.rotation.y = t * 0.12;
+    stars.rotation.y = t * 0.02;
+    group.position.x += (mx * 0.4 - group.position.x) * 0.05;
+    group.position.y += (-my * 0.4 - group.position.y) * 0.05;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+/* ---------- AUTH ---------- */
+$('loginBtn').onclick = async () => {
+  const username = $('username').value.trim();
+  const password = $('password').value;
+  const err = $('loginErr');
+  err.classList.add('hidden');
+
+  if (!username || !password) {
+    err.textContent = 'FIELDS REQUIRED';
+    err.classList.remove('hidden');
+    return;
+  }
+
+  $('loginBtn').disabled = true;
+  $('loginBtn').textContent = 'AUTHENTICATING';
+
+  try {
+    const r = await fetch('/x/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!r.ok) {
+      err.textContent = 'INVALID CREDENTIALS';
+      err.classList.remove('hidden');
+    } else {
+      location.href = '/';
+    }
+  } catch {
+    err.textContent = 'NETWORK ERROR';
+    err.classList.remove('hidden');
+  } finally {
+    $('loginBtn').disabled = false;
+    $('loginBtn').textContent = 'SIGN IN';
+  }
+};
+
+$('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('loginBtn').click();
+});
+</script>
+</body>
+</html>

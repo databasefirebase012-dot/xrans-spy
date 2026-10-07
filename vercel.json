@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/x/register", "destination": "/api/register" },
+    { "source": "/x/devices",  "destination": "/api/xdevices" },
+    { "source": "/x/login",    "destination": "/api/xlogin" },
+    { "source": "/x/logout",   "destination": "/api/xlogout" },
+    { "source": "/x/command",  "destination": "/api/command" },
+    { "source": "/x/logs",     "destination": "/api/logs" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
+  ]
+}
